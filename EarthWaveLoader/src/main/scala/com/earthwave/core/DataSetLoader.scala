@@ -13,6 +13,15 @@ import scala.concurrent.Await
 
 case class DataSetLoaderConfig( inputFilePath : String, startsWith : String, ext : String, parallelisation : Int, gridCellSize : Int  )
 
+object Constants
+{
+  val dfConnectorHost = "localhost"
+  val dfConnectorPort = 9001
+  val dataOutputPath = "Earthwave//Data0"
+  val catalogueOutputPath = "Earthwave//Data0"
+}
+
+
 object DataSetLoader {
   def main(args: Array[String]): Unit = {
 

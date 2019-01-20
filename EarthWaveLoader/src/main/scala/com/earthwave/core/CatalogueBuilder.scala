@@ -15,7 +15,7 @@ class CatalogueBuilder extends Actor with ActorLogging {
     }
     case Flush() =>{
 
-      val session = new ConnectorSession("localhost",9001, "Earthwave//Data0")
+      val session = new ConnectorSession(Constants.dfConnectorHost,Constants.dfConnectorPort, Constants.catalogueOutputPath)
 
       val catalogue = new DFTable("Catalogue" )
 

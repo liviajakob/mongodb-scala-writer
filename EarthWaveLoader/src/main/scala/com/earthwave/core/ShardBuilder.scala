@@ -33,7 +33,7 @@ object ShardBuilder {
     val header = shard._1
     val data = shard._2
 
-    val session = new ConnectorSession("localhost",9001, "Earthwave//Data0")
+    val session = new ConnectorSession(Constants.dfConnectorHost,Constants.dfConnectorPort, Constants.dataOutputPath)
 
     for( (k,v) <- shard._2 ) {
       log.log.info(s"Creating Shard for Grid Cell x=${k.x} y=${k.y} size=${k.size}")
