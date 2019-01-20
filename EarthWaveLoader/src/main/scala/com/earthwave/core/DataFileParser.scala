@@ -1,8 +1,9 @@
 package com.earthwave.core
 
-import java.lang
+import akka.actor.ActorLogging
 
-case class FileHeader( columns : Vector[(String,Int)] )
+
+case class FileHeader( fileName : String, columns : Vector[(String,Int)] )
 {
 
   def getIndex( name : String ): Int =
@@ -17,10 +18,9 @@ case class FileHeader( columns : Vector[(String,Int)] )
 
 object DataFileParser {
 
-  var buckettedRows : Map[GridCell, Vector[Vector[lang.Double]]] = Map[GridCell, Vector[Vector[lang.Double]]]()
 
-  def parseFile( file : java.io.File, gridCellSize : Long ) : (FileHeader,Map[GridCell,Vector[Vector[lang.Double]]]) = {
-
+  def parseFile( file : java.io.File, gridCellSize : Long, log : ActorLogging ) : (FileHeader,Map[GridCell,Vector[Vector[java.lang.Double]]]) = {
+    var buckettedRows : Map[GridCell, Vector[Vector[java.lang.Double]]] = Map[GridCell, Vector[Vector[java.lang.Double]]]()
     // create the datatables
     val bufferedSource = io.Source.fromFile(file)
 
@@ -48,7 +48,7 @@ object DataFileParser {
 
       val tokens = l.split(",").drop(1)
 
-      val values: Vector[lang.Double] = tokens.map(x => parseField(x)).toVector
+      val values: Vector[java.lang.Double] = tokens.map(x => parseField(x)).toVector
 
       val cellX = Math.floor(values(xIndex) / gridCellSize).toLong * gridCellSize
       val cellY = Math.floor(values(yIndex) / gridCellSize).toLong * gridCellSize
@@ -56,7 +56,7 @@ object DataFileParser {
 
       if( buckettedRows.contains(gridCell))
       {
-        val rowData : Vector[Vector[lang.Double]] = buckettedRows(gridCell)
+        val rowData : Vector[Vector[java.lang.Double]] = buckettedRows(gridCell)
         val element = ( gridCell, rowData.:+(values))
 
         buckettedRows = buckettedRows.+( element )
@@ -68,14 +68,18 @@ object DataFileParser {
       }
     }
 
-    val fileHeader = FileHeader(headerWithIndex)
+    val fileHeader = FileHeader(file.getName(), headerWithIndex)
 
     val xIndex = fileHeader.getIndex("x")
     val yIndex = fileHeader.getIndex("y")
 
+    val t = Profile.profile(
     dataLines.foreach( l => parseLine(l, xIndex, yIndex ))
+    )
 
-    (FileHeader(headerWithIndex ), buckettedRows)
+    log.log.info( s"File ${file.getName()} took ${t._2} millis to parse" )
+
+    (FileHeader(file.getName(), headerWithIndex ), buckettedRows)
   }
 
 }
