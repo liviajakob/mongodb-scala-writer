@@ -1,11 +1,12 @@
 package com.earthwave.core
 
-import akka.actor.ActorLogging
+import akka.actor.{ActorLogging, ActorRef}
+import com.earthwave.core.Messages.GridCellFile
 
+import scala.collection.mutable.Map
 
 case class FileHeader( fileName : String, columns : Vector[(String,Int)] )
 {
-
   def getIndex( name : String ): Int =
   {
     columns.filter(x => x._1 == name).head._2
@@ -13,14 +14,11 @@ case class FileHeader( fileName : String, columns : Vector[(String,Int)] )
 
 }
 
+class DataFileParser {
 
+  var buckettedRows = Map[GridCell, DataFileWriter]()
 
-
-object DataFileParser {
-
-
-  def parseFile( file : java.io.File, gridCellSize : Long, log : ActorLogging ) : (FileHeader,Map[GridCell,Vector[Vector[java.lang.Double]]]) = {
-    var buckettedRows : Map[GridCell, Vector[Vector[java.lang.Double]]] = Map[GridCell, Vector[Vector[java.lang.Double]]]()
+  def parseFile( idx : Int, file : java.io.File, gridCellSize : Long, log : ActorLogging )  = {
     // create the datatables
     val bufferedSource = io.Source.fromFile(file)
 
@@ -31,24 +29,18 @@ object DataFileParser {
     } yield tokens
 
     //Dropping the first column.
-    val headers =  headerFields.flatten.toVector.drop(1)
+    val headers =  headerFields.flatten.toVector.drop(1).toList
 
-    val headerWithIndex = headers.zip(Vector.range(0, headers.length) )
+    val headerWithIndex = headers.zip(Vector.range(0, headers.length) ).toVector
 
     //get the lines without the header.
     val dataLines = bufferedSource.getLines().drop(1)
 
-    def parseLine( l :String, xIndex : Int, yIndex : Int ) : Unit =
+    def parseLine( l :String, xIndex : Int, yIndex : Int, fileHeader : FileHeader ) : Unit =
     {
-      def parseField( f : String) : java.lang.Double = f match {
+      val tokens = l.split(",").drop(1).toList
 
-        case x : String if x.isEmpty => null;
-        case y : String => y.toDouble;
-      }
-
-      val tokens = l.split(",").drop(1)
-
-      val values: Vector[java.lang.Double] = tokens.map(x => parseField(x)).toVector
+      val values: Vector[java.lang.Double] = tokens.map(x => FileHelper.parseField(x)).toVector
 
       val cellX = Math.floor(values(xIndex) / gridCellSize).toLong * gridCellSize
       val cellY = Math.floor(values(yIndex) / gridCellSize).toLong * gridCellSize
@@ -56,15 +48,19 @@ object DataFileParser {
 
       if( buckettedRows.contains(gridCell))
       {
-        val rowData : Vector[Vector[java.lang.Double]] = buckettedRows(gridCell)
-        val element = ( gridCell, rowData.:+(values))
-
-        buckettedRows = buckettedRows.+( element )
+        val writer = buckettedRows(gridCell)
+        val line = tokens.reduceLeft( (x,y)=> x.concat(s",$y"))
+        val lineWithSwath = line.concat(s",${file.getName}")
+        writer.write(lineWithSwath)
       }
       else
       {
-        val element = (GridCell(cellX, cellY, gridCellSize ), Vector(values))
-        buckettedRows = buckettedRows.+(element)
+        val dfw = new DataFileWriter(idx, fileHeader, gridCell )
+        val line = tokens.reduceLeft( (x,y)=> x.concat(s",$y"))
+        val lineWithSwath = line.concat(s",${file.getName}")
+        dfw.write(lineWithSwath)
+
+        buckettedRows.+=((gridCell, dfw))
       }
     }
 
@@ -74,12 +70,18 @@ object DataFileParser {
     val yIndex = fileHeader.getIndex("y")
 
     val t = Profile.profile(
-    dataLines.foreach( l => parseLine(l, xIndex, yIndex ))
+    dataLines.foreach( l => parseLine(l, xIndex, yIndex, fileHeader ))
     )
 
     log.log.info( s"File ${file.getName()} took ${t._2} millis to parse" )
 
-    (FileHeader(file.getName(), headerWithIndex ), buckettedRows)
+  }
+
+  def flush(shardManager : ActorRef) = {
+
+    buckettedRows.values.foreach(x => { x.flush()
+                                        shardManager ! GridCellFile( x.gridCell, x.dfName, x.rowCount )
+                                      })
   }
 
 }

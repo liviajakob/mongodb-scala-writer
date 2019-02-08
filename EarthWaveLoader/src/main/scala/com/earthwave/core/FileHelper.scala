@@ -11,6 +11,13 @@ object FileHelper {
     }
     else{ List[File]() }
   }
+  def parseField(f: String): java.lang.Double = f match {
 
+    case x: String if x.isEmpty => null;
+    case y: String => y.toDouble;
+  }
 
+  def parseLine( line : String ) : Vector[java.lang.Double] = {
+    line.split(",").map( x => parseField(x) ).toVector
+  }
 }

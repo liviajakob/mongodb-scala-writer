@@ -19,6 +19,10 @@ object Constants
   val dfConnectorPort = 9001
   val dataOutputPath = "Earthwave//Data0"
   val catalogueOutputPath = "Earthwave//Data0"
+
+  val intermediatePath = "c:\\EarthWave\\Intermediate\\"
+  val shardSize = 500 * 1000
+  val numberOfShardWriters = 4
 }
 
 
@@ -32,16 +36,24 @@ object DataSetLoader {
     val gridCellSize = 100 * 1000
 
     //Start the file manager
-    val dataSetLoaderConfig = DataSetLoaderConfig("C:\\Earthwave\\data", "swath",".csv", 4, gridCellSize)
+    val dataSetLoaderConfig = DataSetLoaderConfig("C:\\Earthwave\\Data", "swath",".csv", 6, gridCellSize)
 
-    val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig)),"FileManager")
+    val shardManager = system.actorOf(Props(new ShardManager()), "ShardManager" )
+
+    val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig, shardManager)),"FileManager")
 
     fileManagerActor ! Start()
 
     while( !Await.result(( fileManagerActor ? Finished() ).mapTo[Boolean], 30 seconds) )
     {
-      Thread.sleep(60 * 1000 )
+      Thread.sleep(15 * 1000 )
     }
+
+    while( !Await.result( (shardManager ? Finished() ).mapTo[Boolean], 30 seconds ) )
+    {
+      Thread.sleep(15 * 1000 )
+    }
+
     system.terminate()
   }
 }
