@@ -22,7 +22,7 @@ object Constants
 
   val intermediatePath = "c:\\EarthWave\\Intermediate\\"
   val shardSize = 500 * 1000
-  val numberOfShardWriters = 4
+  val numberOfShardWriters = 2
 }
 
 
