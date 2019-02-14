@@ -37,6 +37,8 @@ class ShardWriter(x : Int ) extends Actor with ActorLogging {
         //Drop the header
         val data = bufferedSource.getLines().drop(1).toVector
 
+        bufferedSource.close()
+
         (fileHeader, data)
       }
 
