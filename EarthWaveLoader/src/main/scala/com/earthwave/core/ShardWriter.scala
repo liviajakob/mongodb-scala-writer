@@ -19,6 +19,7 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
 
   var numberOfShardsToWrite = 0
   var shardDetails = List[ShardDetail]()
+  var allFiles = List[java.io.File]()
 
 
   private def writeCatalogue( shards : List[ShardDetail], outputDir : String) ={
@@ -58,6 +59,9 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
       if( numberOfShardsToWrite == 0) {
         writeCatalogue( shardDetails, s.outputDir )
         shardDetails = List[ShardDetail]()
+
+        allFiles.map(f => f.delete() )
+        allFiles = List[java.io.File]()
         shardManager ! CompletedGridCell(s.g)
       }
 
@@ -177,7 +181,8 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
       val outputDir = s"Earthwave/swath/${outputDate.getYear}/${outputDate.getMonthValue}/${f.gridCell.x}_${f.gridCell.y}"
 
       //Create a collection of Futures that will be executed in parallel.
-      val allDataFutures = f.files.map(r => readFile( new java.io.File(r)) )
+      allFiles = f.files.map( r => new java.io.File(r))
+      val allDataFutures = allFiles.map(f => readFile( f ))
 
       //Executes the futures
       val futTraverseResult = Future.sequence(allDataFutures)
