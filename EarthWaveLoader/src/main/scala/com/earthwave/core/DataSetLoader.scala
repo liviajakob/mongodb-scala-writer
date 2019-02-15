@@ -29,32 +29,36 @@ object Constants
 object DataSetLoader {
   def main(args: Array[String]): Unit = {
 
-    val conf: Config = ConfigFactory.load()
-    implicit val system = ActorSystem("Process", conf)
-    implicit val timeout = Timeout( 5 seconds )
+    val listOfDirs = List("C:\\Earthwave\\Single", "C:\\Earthwave\\Two")
 
-    val gridCellSize = 100 * 1000
+    listOfDirs.foreach( x =>  {
+      val conf: Config = ConfigFactory.load()
+      implicit val system = ActorSystem("Process", conf)
+      implicit val timeout = Timeout(5 seconds)
 
-    //Start the file manager
-    val dataSetLoaderConfig = DataSetLoaderConfig("C:\\Earthwave\\Data", "swath",".csv", 6, gridCellSize)
+      val gridCellSize = 100 * 1000
 
-    val shardManager = system.actorOf(Props(new ShardManager()), "ShardManager" )
+      //Start the file manager
+      val dataSetLoaderConfig = DataSetLoaderConfig(x, "swath", ".csv", 6, gridCellSize)
 
-    val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig, shardManager)),"FileManager")
+      val shardManager = system.actorOf(Props(new ShardManager()), "ShardManager")
 
-    fileManagerActor ! Start()
+      val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig, shardManager)), "FileManager")
 
-    while( !Await.result(( fileManagerActor ? Finished() ).mapTo[Boolean], 30 seconds) )
-    {
-      Thread.sleep(15 * 1000 )
-    }
+      fileManagerActor ! Start()
 
-    while( !Await.result( (shardManager ? Finished() ).mapTo[Boolean], 30 seconds ) )
-    {
-      Thread.sleep(15 * 1000 )
-    }
+      while (!Await.result((fileManagerActor ? Finished()).mapTo[Boolean], 30 seconds)) {
+        Thread.sleep(15 * 1000)
+      }
 
-    system.terminate()
+      while (!Await.result((shardManager ? Finished()).mapTo[Boolean], 30 seconds)) {
+        Thread.sleep(15 * 1000)
+      }
+
+      system.terminate()
+
+      Thread.sleep(30 * 1000 )
+    })
   }
 }
 
