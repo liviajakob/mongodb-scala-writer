@@ -22,7 +22,8 @@ class DataFileParser {
     // create the datatables
     val bufferedSource = io.Source.fromFile(file)
 
-    val header = bufferedSource.getLines().take(1)
+    val lines = bufferedSource.getLines()
+    val header = lines.take(1)
 
     val headerFields: Iterator[Array[String]] =  for {line <- header
                                                       tokens = line.split(",")
@@ -32,9 +33,6 @@ class DataFileParser {
     val headers =  headerFields.flatten.toVector.drop(1).toList
 
     val headerWithIndex = headers.zip(Vector.range(0, headers.length) ).toVector
-
-    //get the lines without the header.
-    val dataLines = bufferedSource.getLines().drop(1)
 
     def parseLine( l :String, xIndex : Int, yIndex : Int, fileHeader : FileHeader ) : Unit =
     {
@@ -70,7 +68,7 @@ class DataFileParser {
     val yIndex = fileHeader.getIndex("y")
 
     val t = Profile.profile(
-    dataLines.foreach( l => parseLine(l, xIndex, yIndex, fileHeader ))
+    lines.foreach( l => parseLine(l, xIndex, yIndex, fileHeader ))
     )
 
     log.log.info( s"File ${file.getName()} took ${t._2} millis to parse" )

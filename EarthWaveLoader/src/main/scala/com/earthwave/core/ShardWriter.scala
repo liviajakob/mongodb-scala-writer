@@ -71,7 +71,9 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
         implicit val ec = ExecutionContext.global
         Future {
           val bufferedSource = io.Source.fromFile(file)
-          val header = bufferedSource.getLines().take(1)
+
+          val lines = bufferedSource.getLines()
+          val header = lines.take(1)
 
           val headerFields: Iterator[Array[String]] = for {line <- header
                                                            tokens = line.split(",")
@@ -84,7 +86,7 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
           val fileHeader = FileHeader(file.getName, headerWithIndex)
 
           //Drop the header
-          val data = bufferedSource.getLines().drop(1).toVector
+          val data = lines.toVector
 
           bufferedSource.close()
 
