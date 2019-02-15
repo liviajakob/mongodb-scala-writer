@@ -3,10 +3,6 @@ package com.earthwave.core
 import akka.actor.{Actor, ActorLogging, Props}
 import com.earthwave.core.Messages._
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.util.Timeout
 
 class ShardManager extends Actor with ActorLogging {
 
@@ -22,7 +18,7 @@ class ShardManager extends Actor with ActorLogging {
   val range = List.range[Int](0,numberOfActors,1)
 
   //Create the processing actors
-  val processingActors = range.map(x => context.actorOf(Props(new ShardWriter( x )), s"ShardWriter$x"))
+  val processingActors = range.map(x => context.actorOf(Props(new ShardWriter( x, self )), s"ShardWriter$x"))
 
   var completedFileProcessors = 0
 

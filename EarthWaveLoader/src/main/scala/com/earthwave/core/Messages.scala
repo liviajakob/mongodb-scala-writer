@@ -11,4 +11,5 @@ object Messages {
   case class Stop()
   case class Flush()
   case class Finished()
+  case class ShardComplete(g : GridCell, shardDetails : ShardDetail, outputDir : String)
 }
