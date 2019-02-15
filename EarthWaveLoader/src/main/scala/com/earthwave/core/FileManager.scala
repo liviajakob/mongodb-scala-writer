@@ -12,6 +12,7 @@ class FileManager( config : DataSetLoaderConfig, shardManager : ActorRef ) exten
   var files = FileHelper.getListOfFiles(config.inputFilePath, config.startsWith,config.ext)
   var processingFiles = Set[String]()
 
+  log.info(s"Processing Folder: ${config.inputFilePath}")
   log.info(s"Found [${files.size}] to process.")
 
   //Required File Processing Actors

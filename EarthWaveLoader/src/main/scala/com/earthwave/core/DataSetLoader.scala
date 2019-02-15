@@ -11,16 +11,19 @@ import com.typesafe.config.{Config, ConfigFactory}
 import scala.concurrent.Await
 
 
+//Add -Xmx12G to your VM Options in Edit Configurations
+
 case class DataSetLoaderConfig( inputFilePath : String, startsWith : String, ext : String, parallelisation : Int, gridCellSize : Int  )
 
 object Constants
 {
   val dfConnectorHost = "localhost"
   val dfConnectorPort = 9001
-  val dataOutputPath = "Earthwave//Data0"
-  val catalogueOutputPath = "Earthwave//Data0"
+  //val dataOutputPath = "Earthwave//Data0"
+  //val catalogueOutputPath = "Earthwave//Data0"
 
-  val intermediatePath = "c:\\EarthWave\\Intermediate\\"
+  //val intermediatePath = "c:\\EarthWave\\Intermediate\\"
+  val intermediatePath = "/media/martin/DATA/Data/poc/TestInt/"
   val shardSize = 500 * 1000
   val numberOfShardWriters = 2
 }
@@ -29,7 +32,10 @@ object Constants
 object DataSetLoader {
   def main(args: Array[String]): Unit = {
 
-    val listOfDirs = List("C:\\Earthwave\\Single", "C:\\Earthwave\\Two")
+    //val listOfDirs = List("C:\\Earthwave\\Single", "C:\\Earthwave\\Two")
+    //val listOfDirs = List("/media/martin/ExtData/Data/poc/input/test/csv1", "/media/martin/ExtData/Data/poc/input/test/csv2")
+    val rootDir = "/media/martin/ExtData/Data/poc/input/"
+    val listOfDirs = List(rootDir+"2011-2/csv", rootDir+"2011-3/csv",rootDir+"2011-4/csv",rootDir+"2011-5/csv",rootDir+"2011-6/csv",rootDir+"2012-2/csv",rootDir+"2012-3/csv",rootDir+"2012-4/csv",rootDir+"2012-5/csv",rootDir+"2012-6/csv")
 
     listOfDirs.foreach( x =>  {
       val conf: Config = ConfigFactory.load()

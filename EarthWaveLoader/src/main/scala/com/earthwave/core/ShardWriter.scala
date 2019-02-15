@@ -178,7 +178,7 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
       implicit val ec = ExecutionContext.global
 
       val outputDate = LocalDate.parse( f.files.head.split("_")(1), DateTimeFormatter.ofPattern("yyyyMMdd") )
-      val outputDir = s"Earthwave/swath/${outputDate.getYear}/${outputDate.getMonthValue}/${f.gridCell.x}_${f.gridCell.y}"
+      val outputDir = s"Earthwave/swath/y${outputDate.getYear}/m${outputDate.getMonthValue}/cell_${f.gridCell.x}_${f.gridCell.y}"
 
       //Create a collection of Futures that will be executed in parallel.
       allFiles = f.files.map( r => new java.io.File(r))
