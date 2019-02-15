@@ -20,6 +20,7 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
   var numberOfShardsToWrite = 0
   var shardDetails = List[ShardDetail]()
 
+
   private def writeCatalogue( shards : List[ShardDetail], outputDir : String) ={
 
     val session = new ConnectorSession(Constants.dfConnectorHost,  Constants.dfConnectorPort, outputDir )
@@ -66,26 +67,29 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
 
       log.info( s"Shard writer [$x] has received grid cell X=[${f.gridCell.x}] Y=[${f.gridCell.y}] to process" )
 
-      def readFile( file : java.io.File ) : (FileHeader,Vector[String]) = {
-        val bufferedSource = io.Source.fromFile(file)
-        val header = bufferedSource.getLines().take(1)
+      def readFile( file : java.io.File ) : Future[(FileHeader,Vector[String])] = {
+        implicit val ec = ExecutionContext.global
+        Future {
+          val bufferedSource = io.Source.fromFile(file)
+          val header = bufferedSource.getLines().take(1)
 
-        val headerFields: Iterator[Array[String]] =  for {line <- header
-                                                          tokens = line.split(",")
-        } yield tokens
+          val headerFields: Iterator[Array[String]] = for {line <- header
+                                                           tokens = line.split(",")
+          } yield tokens
 
-        val flattenedHeader = headerFields.flatten.toVector
+          val flattenedHeader = headerFields.flatten.toVector
 
-        val headerWithIndex = flattenedHeader.zip(Vector.range(0, flattenedHeader.length) )
+          val headerWithIndex = flattenedHeader.zip(Vector.range(0, flattenedHeader.length))
 
-        val fileHeader = FileHeader( file.getName, headerWithIndex  )
+          val fileHeader = FileHeader(file.getName, headerWithIndex)
 
-        //Drop the header
-        val data = bufferedSource.getLines().drop(1).toVector
+          //Drop the header
+          val data = bufferedSource.getLines().drop(1).toVector
 
-        bufferedSource.close()
+          bufferedSource.close()
 
-        (fileHeader, data)
+          (fileHeader, data)
+        }
       }
 
       def batches( dataVector : Vector[String]  ) : List[Vector[String]] = {
@@ -165,30 +169,40 @@ class ShardWriter(x : Int, shardManager: ActorRef ) extends Actor with ActorLogg
         }
       }
 
-
+      implicit val ec = ExecutionContext.global
 
       val outputDate = LocalDate.parse( f.files.head.split("_")(1), DateTimeFormatter.ofPattern("yyyyMMdd") )
       val outputDir = s"EarthWave/${f.gridCell.x}_${f.gridCell.y}/${outputDate.getYear}/${outputDate.getMonthValue}"
 
-      val allData = f.files.map( r => readFile( new java.io.File(r)) )
+      //Create a collection of Futures that will be executed in parallel.
+      val allDataFutures = f.files.map(r => readFile( new java.io.File(r)) )
 
-      val dataVector = allData.map(d => d._2 ).flatten.toVector
+      //Executes the futures
+      val futTraverseResult = Future.sequence(allDataFutures)
+      //Called after the processing is complete.
+      futTraverseResult.onComplete {
+        case Success(res) => {
+          val dataVector = res.map(d => d._2).flatten.toVector
 
-      val shards = batches( dataVector )
+          val shards = batches(dataVector)
 
-      numberOfShardsToWrite = shards.size
+          numberOfShardsToWrite = shards.size
 
-      log.info(s"For grid cell X=${f.gridCell.x} Y=${f.gridCell.y} will create ${shards.size} shards.")
+          log.info(s"For grid cell X=${f.gridCell.x} Y=${f.gridCell.y} will create ${shards.size} shards.")
 
-      val shardDetails = for {shard <- shards
-                              s = readAndUpload(shard, allData.head._1.columns, outputDir )
-                              } yield s
+          val shardDetails = for {shard <- shards
+                                  s = readAndUpload(shard, res.head._1.columns, outputDir)
+          } yield s
 
-      implicit val ec = ExecutionContext.global
-      shardDetails.map( x => x.onComplete{
-                                           case Success(value) => self ! ShardComplete(f.gridCell, value, outputDir  )
-                                            case Failure(e) => e.printStackTrace
-                                          } )
+          shardDetails.map(x => x.onComplete {
+            case Success(value) => self ! ShardComplete(f.gridCell, value, outputDir)
+            case Failure(e) => e.printStackTrace
+          })
+        }
+        case Failure(e) => {
+          e.printStackTrace()
+        }
+      }
     }
     case _ => {
       log.error( s"Unexpected message received." )
