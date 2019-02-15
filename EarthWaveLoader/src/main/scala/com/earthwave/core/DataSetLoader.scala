@@ -23,7 +23,7 @@ object Constants
   //val catalogueOutputPath = "Earthwave//Data0"
 
   //val intermediatePath = "c:\\EarthWave\\Intermediate\\"
-  val intermediatePath = "/media/martin/DATA/Data/poc/TestInt/"
+  val intermediatePath = "/media/martin/DATA/Data/poc/Int/"
   val shardSize = 500 * 1000
   val numberOfShardWriters = 2
 }
