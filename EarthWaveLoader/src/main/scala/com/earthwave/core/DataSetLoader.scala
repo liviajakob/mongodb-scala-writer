@@ -17,15 +17,18 @@ case class DataSetLoaderConfig( inputFilePath : String, startsWith : String, ext
 
 object Constants
 {
-  val dfConnectorHost = "localhost"
+  val dfConnectorHost = "MartinUbuntu"
   val dfConnectorPort = 9001
   //val dataOutputPath = "Earthwave//Data0"
   //val catalogueOutputPath = "Earthwave//Data0"
 
   //val intermediatePath = "c:\\EarthWave\\Intermediate\\"
-  val intermediatePath = "/media/martin/DATA/Data/poc/Int/"
-  val shardSize = 500 * 1000
-  val numberOfShardWriters = 2
+  val intermediatePath = "/home/livia/outputdata/"
+  val shardSize = 500 * 1000 //number of rows in a shard
+  val numberOfShardWriters = 2 //df specific
+
+  val mongoDBname = "GridCell"
+  val dataName = "swath"
 }
 
 
@@ -33,9 +36,9 @@ object DataSetLoader {
   def main(args: Array[String]): Unit = {
 
     //val listOfDirs = List("C:\\Earthwave\\Single", "C:\\Earthwave\\Two")
-    //val listOfDirs = List("/media/martin/ExtData/Data/poc/input/test/csv1", "/media/martin/ExtData/Data/poc/input/test/csv2")
-    val rootDir = "/media/martin/ExtData/Data/poc/input/"
-    val listOfDirs = List(rootDir+"2011-2/csv", rootDir+"2011-3/csv",rootDir+"2011-4/csv",rootDir+"2011-5/csv",rootDir+"2011-6/csv",rootDir+"2012-2/csv",rootDir+"2012-3/csv",rootDir+"2012-4/csv",rootDir+"2012-5/csv",rootDir+"2012-6/csv")
+    val listOfDirs = List("/home/livia/Data")
+    //val rootDir = "/media/martin/ExtData/Data/poc/input/"
+    //val listOfDirs = List(rootDir+"2011-2/csv", rootDir+"2011-3/csv",rootDir+"2011-4/csv",rootDir+"2011-5/csv",rootDir+"2011-6/csv",rootDir+"2012-2/csv",rootDir+"2012-3/csv",rootDir+"2012-4/csv",rootDir+"2012-5/csv",rootDir+"2012-6/csv")
 
     listOfDirs.foreach( x =>  {
       val conf: Config = ConfigFactory.load()
@@ -47,9 +50,9 @@ object DataSetLoader {
       //Start the file manager
       val dataSetLoaderConfig = DataSetLoaderConfig(x, "swath", ".csv", 6, gridCellSize)
 
-      val shardManager = system.actorOf(Props(new ShardManager()), "ShardManager")
+      //val shardManager = system.actorOf(Props(new ShardManager()), "ShardManager")
 
-      val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig, shardManager)), "FileManager")
+      val fileManagerActor = system.actorOf(Props(new FileManager(dataSetLoaderConfig)), "FileManager")
 
       fileManagerActor ! Start()
 
@@ -57,9 +60,9 @@ object DataSetLoader {
         Thread.sleep(15 * 1000)
       }
 
-      while (!Await.result((shardManager ? Finished()).mapTo[Boolean], 30 seconds)) {
-        Thread.sleep(15 * 1000)
-      }
+      //while (!Await.result((shardManager ? Finished()).mapTo[Boolean], 30 seconds)) {
+        //Thread.sleep(15 * 1000)
+      //}
 
       system.terminate()
 

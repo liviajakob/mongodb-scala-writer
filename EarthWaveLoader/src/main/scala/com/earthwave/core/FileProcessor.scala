@@ -2,10 +2,10 @@ package com.earthwave.core
 
 import java.time.LocalDateTime
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.{Actor, ActorLogging}
 import com.earthwave.core.Messages.{Complete, CompletedSwathFile, FileToProcess, Flush}
 
-class FileProcessor(idx : Int, shardManager: ActorRef ) extends Actor with ActorLogging{
+class FileProcessor(idx : Int) extends Actor with ActorLogging{
 
   val parser = new DataFileParser()
 
@@ -23,7 +23,7 @@ class FileProcessor(idx : Int, shardManager: ActorRef ) extends Actor with Actor
       sender ! CompletedSwathFile(f.file.getName())
     }
     case Flush()=>{
-      parser.flush(shardManager)
+      //parser.flush(shardManager)
 
       sender ! Complete()
     }

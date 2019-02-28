@@ -2,11 +2,10 @@ package com.earthwave.core
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-
+import akka.actor.{Actor, ActorLogging, Props}
 import com.earthwave.core.Messages._
 
-class FileManager( config : DataSetLoaderConfig, shardManager : ActorRef ) extends Actor with ActorLogging {
+class FileManager( config : DataSetLoaderConfig) extends Actor with ActorLogging {
 
   //Get the list of files to process
   var files = FileHelper.getListOfFiles(config.inputFilePath, config.startsWith,config.ext)
@@ -22,7 +21,7 @@ class FileManager( config : DataSetLoaderConfig, shardManager : ActorRef ) exten
   val range = List.range[Int](0,numberOfActors,1)
   //Create the processing actors
 
-  val processingActors = range.map(x => context.actorOf(Props(new FileProcessor( x, shardManager )), s"FileProcessor$x"))
+  val processingActors = range.map(x => context.actorOf(Props(new FileProcessor( x)), s"FileProcessor$x"))
 
   var completedFileProcessors = 0
 
@@ -67,8 +66,8 @@ class FileManager( config : DataSetLoaderConfig, shardManager : ActorRef ) exten
 
         processingActors.foreach( x => context.stop(x) )
 
-        log.info("Now start the Shard Managers Processing" )
-        shardManager ! Start()
+        //log.info("Now start the Shard Managers Processing" )
+        //shardManager ! Start()
 
         sender ! true
       }

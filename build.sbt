@@ -5,6 +5,7 @@ scalaVersion := "2.12.7"
 
 libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % "2.5.18"
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0"
 
 lazy val global = project
   .in(file("."))
